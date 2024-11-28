@@ -7,15 +7,28 @@ import { Id } from "~/convex/_generated/dataModel";
 import { PokemonSprite } from "~/app/utils/sprite";
 import { useState } from "react";
 
+function useRandomizedPreloadedPokemonPair() {
+  const [seed, setSeed] = useState(Math.random());
+  const [nextSeed, setNextSeed] = useState(Math.random());
+  const { data } = useQuery(
+    convexQuery(api.pokemon.getPair, { randomSeed: seed })
+  );
+  useQuery(convexQuery(api.pokemon.getPair, { randomSeed: nextSeed }));
+
+  const cycle = () => {
+    setSeed(nextSeed);
+    setNextSeed(Math.random());
+  };
+
+  return { data, cycle };
+}
+
 export const Route = createFileRoute("/")({
   component: Home,
 });
 
 function Home() {
-  const [seed, setSeed] = useState(Math.random());
-  const { data } = useQuery(
-    convexQuery(api.pokemon.getPair, { randomSeed: seed })
-  );
+  const { data, cycle } = useRandomizedPreloadedPokemonPair();
   const voteMutation = useConvexMutation(api.pokemon.vote);
 
   if (!data) return <VoteFallback />;
@@ -24,7 +37,7 @@ function Home() {
 
   function handleVote(winnerId: Id<"pokemon">, loserId: Id<"pokemon">) {
     voteMutation({ voteAgainst: loserId, voteFor: winnerId });
-    setSeed(Math.random());
+    cycle();
   }
 
   return (
@@ -67,16 +80,18 @@ function Home() {
 function VoteFallback() {
   return (
     <>
-      {[1, 2].map((i) => (
-        <div key={i} className="flex flex-col items-center gap-4">
-          <div className="h-64 w-64 animate-pulse rounded-lg bg-gray-800/10" />
-          <div className="flex flex-col items-center justify-center space-y-2 text-center">
-            <div className="h-6 w-16 animate-pulse rounded bg-gray-800/10" />
-            <div className="h-8 w-32 animate-pulse rounded bg-gray-800/10" />
-            <div className="h-12 w-24 animate-pulse rounded bg-gray-800/10" />
+      <div className="flex min-h-[80vh] items-center justify-center gap-16">
+        {[1, 2].map((i) => (
+          <div key={i} className="flex flex-col items-center gap-4">
+            <div className="h-64 w-64 animate-pulse rounded-lg bg-gray-800/10" />
+            <div className="flex flex-col items-center justify-center space-y-2 text-center">
+              <div className="h-6 w-16 animate-pulse rounded bg-gray-800/10" />
+              <div className="h-8 w-32 animate-pulse rounded bg-gray-800/10" />
+              <div className="h-12 w-24 animate-pulse rounded bg-gray-800/10" />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </>
   );
 }
