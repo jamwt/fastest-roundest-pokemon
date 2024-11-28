@@ -40,8 +40,15 @@ async function updateTally(
   pokemonId: Id<"pokemon">,
   win: boolean
 ) {
-  const pokemon = await ctx.db.get(pokemonId);
-  let tallyOverrides = pokemon!.tally;
+  const doc = await ctx.db
+    .query("tallies")
+    .withIndex("by_pokemon", (q) => q.eq("pokemonId", pokemonId))
+    .first();
+  let tallyOverrides = {
+    upVotes: doc!.upVotes,
+    downVotes: doc!.downVotes,
+    winPercentage: doc!.winPercentage,
+  };
   if (win) {
     tallyOverrides.upVotes++;
   } else {
@@ -51,18 +58,27 @@ async function updateTally(
     (tallyOverrides.upVotes /
       (tallyOverrides.upVotes + tallyOverrides.downVotes)) *
     100;
-  await ctx.db.patch(pokemonId, {
-    tally: tallyOverrides,
-  });
+  await ctx.db.patch(doc!._id, tallyOverrides);
 }
 
+type Result = {
+  pokemon: Doc<"pokemon">;
+  tally: Doc<"tallies">;
+};
+
 export const results = query({
-  handler: async (ctx) => {
-    return ctx.db
-      .query("pokemon")
+  handler: async (ctx): Promise<Result[]> => {
+    const tallies = await ctx.db
+      .query("tallies")
       .withIndex("by_tally")
       .order("desc")
       .collect();
+    return Promise.all(
+      tallies.map(async (t) => ({
+        pokemon: (await ctx.db.get(t.pokemonId))!,
+        tally: t,
+      }))
+    );
   },
 });
 
@@ -84,7 +100,12 @@ export const addPokemon = internalMutation({
       const id = await ctx.db.insert("pokemon", {
         name: p.name,
         dexId: p.dexId,
-        tally: { winPercentage: 0, upVotes: 0, downVotes: 0 },
+      });
+      await ctx.db.insert("tallies", {
+        pokemonId: id,
+        winPercentage: 0,
+        upVotes: 0,
+        downVotes: 0,
       });
       const doc = await ctx.db.get(id);
       await randomPokemonAggregate.insert(ctx, doc!);

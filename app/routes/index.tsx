@@ -1,7 +1,7 @@
 // app/routes/index.tsx
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "~/convex/_generated/api";
 import { Id } from "~/convex/_generated/dataModel";
 import { PokemonSprite } from "~/app/utils/sprite";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const [seed] = useState(Math.random());
+  const [seed, setSeed] = useState(Math.random());
   const { data } = useQuery(
     convexQuery(api.pokemon.getPair, { randomSeed: seed })
   );
@@ -24,6 +24,7 @@ function Home() {
 
   function handleVote(winnerId: Id<"pokemon">, loserId: Id<"pokemon">) {
     voteMutation({ voteAgainst: loserId, voteFor: winnerId });
+    setSeed(Math.random());
   }
 
   return (

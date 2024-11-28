@@ -19,19 +19,24 @@ function Results() {
       <div className="container mx-auto px-4 py-8 text-white">
         {data.map((pokemon, index) => (
           <div
-            key={pokemon._id}
+            key={pokemon.pokemon._id}
             className="flex items-center gap-6 rounded-lg bg-gray-800/40 p-6 shadow transition-shadow hover:shadow-md"
           >
             <div className="w-8 text-2xl font-bold text-gray-400">
               #{index + 1}
             </div>
 
-            <PokemonSprite dexId={pokemon.dexId} className="h-20 w-20" />
+            <PokemonSprite
+              dexId={pokemon.pokemon.dexId}
+              className="h-20 w-20"
+            />
 
             <div className="flex-grow">
-              <div className="text-sm text-gray-400">#{pokemon.dexId}</div>
+              <div className="text-sm text-gray-400">
+                #{pokemon.pokemon.dexId}
+              </div>
               <h2 className="text-xl font-semibold capitalize">
-                {pokemon.name}
+                {pokemon.pokemon.name}
               </h2>
             </div>
 
